@@ -24,7 +24,7 @@ def load_data(directory):
             people[row["id"]] = {
                 "name": row["name"],
                 "birth": row["birth"],
-                "movies": set()
+                "movies": set(),
             }
             if row["name"].lower() not in names:
                 names[row["name"].lower()] = {row["id"]}
@@ -38,7 +38,7 @@ def load_data(directory):
             movies[row["id"]] = {
                 "title": row["title"],
                 "year": row["year"],
-                "stars": set()
+                "stars": set(),
             }
 
     # Load stars
@@ -50,6 +50,7 @@ def load_data(directory):
                 movies[row["movie_id"]]["stars"].add(row["person_id"])
             except KeyError:
                 pass
+
 
 def main():
     if len(sys.argv) > 2:
@@ -83,6 +84,13 @@ def main():
             print(f"{i + 1}: {person1} and {person2} starred in {movie}")
 
 
+def in_visited(array: list, id: str):
+    for i in array:
+        if id == i.state[1]:
+            return True
+    return False
+
+
 def shortest_path(source, target):
     """
     Returns the shortest list of (movie_id, person_id) pairs
@@ -91,46 +99,63 @@ def shortest_path(source, target):
     If no possible path, returns None.
     """
     # TODO
+    # Using FIFO Method for BFS
     queue = QueueFrontier()
     visited = []
-    node = Node((None,source),(None,None),None)
+    node = Node((None, source), (None, None))
     queue.add(node)
-    while(queue.empty() == False):
+    while queue.empty() == False:
         curr_actor = queue.remove()
-        if curr_actor in visited:
+        if in_visited(visited, curr_actor.state[1]):  # For efficient Searching
             continue
         visited.append(curr_actor)
-        if(curr_actor.state[1] == target):
-            break
+        if curr_actor.state[1] == target:
+            return construct_path(source, target, visited)
         else:
-            flag = False
-            get_neighbours = neighbors_for_person(person_id=curr_actor.state[1])
+            get_neighbours = neighbors_for_person(
+                person_id=curr_actor.state[1]
+            )  # Neighbours of current Actor
             for neighbour in get_neighbours:
-                if neighbour[1] == target:
-                    visited.append(Node(neighbour,curr_actor.state,None))
-                    flag = True
-                    break
-                queue.add(Node(neighbour,curr_actor.state,None))
-            if flag:
-                break
-    return construct_path(source,target,visited)
-
-def construct_path(source,target,visited : list):
-    path = []
-    parent = visited[-1].parent[1]
-    path.append(visited.pop().state)
-    while len(visited) != 0:
-        if(parent == source):
-            return path[::-1]
-        for index,x in enumerate(visited):
-            if x.state[1] == parent:
-                path.append(x.state)
-                x = visited.pop(index)
-                parent = x.parent[1]
-                break
-    if(parent == source):
-        return path[::-1]
+                if neighbour[1] == target:  # For efficient Searching
+                    visited.append(Node(neighbour, curr_actor.state))
+                    return construct_path(source, target, visited)
+                queue.add(Node(neighbour, curr_actor.state))
     return None
+
+
+def construct_path(source, target, visited: list):
+    """
+    Constructs and returns a path from target to source from the visited Nodes
+    """
+    path = []
+    curr_node = visited.pop()
+
+    # Base Cases
+    if source == target:
+        return []
+    elif target != curr_node.state[1]:
+        return None
+
+    # Keeping Track of the parent Node
+    parent = curr_node.parent[1]
+    path.append(curr_node.state)
+    while parent != source:
+        flag = True
+        for index, x in enumerate(visited):
+            if x.state[1] == parent:
+                # Removing the current Node from the Visited
+                parent = x.parent[1]
+                if parent == None:  # We have reached the base case
+                    return path[::-1]
+                path.append(x.state)
+                visited.pop(index)
+                flag = False
+                break
+        # Return the reverse of the list
+        if flag:
+            return path[::-1]
+    return path[::-1]
+
 
 def person_id_for_name(name):
     """
