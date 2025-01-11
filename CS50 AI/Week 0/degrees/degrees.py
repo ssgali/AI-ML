@@ -51,7 +51,6 @@ def load_data(directory):
             except KeyError:
                 pass
 
-
 def main():
     if len(sys.argv) > 2:
         sys.exit("Usage: python degrees.py [directory]")
@@ -91,10 +90,45 @@ def shortest_path(source, target):
 
     If no possible path, returns None.
     """
-
     # TODO
-    raise NotImplementedError
+    queue = QueueFrontier()
+    visited = []
+    node = Node((None,source),(None,None),None)
+    queue.add(node)
+    while(queue.empty() == False):
+        curr_actor = queue.remove()
+        if curr_actor in visited:
+            continue
+        visited.append(curr_actor)
+        if(curr_actor.state[1] == target):
+            break
+        else:
+            flag = False
+            get_neighbours = neighbors_for_person(person_id=curr_actor.state[1])
+            for neighbour in get_neighbours:
+                if neighbour[1] == target:
+                    visited.append(Node(neighbour,curr_actor.state,None))
+                    flag = True
+                    break
+                queue.add(Node(neighbour,curr_actor.state,None))
+            if flag:
+                break
+    return construct_path(source,target,visited)
 
+def construct_path(source,target,visited : list):
+    path = []
+    parent = visited[-1].parent[1]
+    path.append(visited.pop().state)
+    while len(visited) != 0:
+        if(parent == source):
+            return path[::-1]
+        for index,x in enumerate(visited):
+            if x.state[1] == parent:
+                path.append(x.state)
+                x = visited.pop(index)
+                parent = x.parent[1]
+                break
+    return None
 
 def person_id_for_name(name):
     """
