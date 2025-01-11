@@ -2,7 +2,8 @@
 Tic Tac Toe Player
 """
 
-import math, copy
+import math
+import copy
 
 X = "X"
 O = "O"
@@ -35,11 +36,11 @@ def actions(board):
     """
     Returns set of all possible actions (i, j) available on the board.
     """
-    moves = []
+    moves = set()
     for i, row in enumerate(board):
         for j, space in enumerate(row):
             if space == EMPTY:
-                moves.append((i, j))
+                moves.add((i, j))
     return moves
 
 
@@ -47,6 +48,7 @@ def result(board, action):
     """
     Returns the board that results from making move (i, j) on the board.
     """
+    action = list(action)  # Converting Set to List
     if not (
         0 <= action[0] <= 2
         and 0 <= action[1] <= 2
@@ -117,19 +119,23 @@ def maximize(board):
     """
     Returns a tuple with most possible score at its first index and move at its second index
     """
+    if terminal(board):
+        return (utility(board), None)
     moves = actions(board)
-    safe_move = 0
-    worst_move = 0
+    safe_move = 0  # Safest Move
+    worst_move = 0  # Worst Move
     if len(moves) == 1:
+        moves = list(moves)
         return (utility(result(board, moves[0])), moves[0])
     for move in moves:
-        score, _ = minimize(result(board, move))
+        score, _ = minimize(result(board, move))  # Doing Cross Recursion kinda thing
         if score > 0:
-            return score, move
+            return score, move  # Alpha beta prunning here, skipping the calls ahead
         elif score == 0:
             safe_move = move
         else:
             worst_move = move
+    # After All moves select the best move available
     if safe_move != 0:
         return 0, safe_move
     else:
@@ -140,19 +146,23 @@ def minimize(board):
     """
     Returns a tuple with the least possible score at its first index and move at its second index
     """
+    if terminal(board):
+        return (utility(board), None)
     moves = actions(board)
     if len(moves) == 1:
+        moves = list(moves)
         return (utility(result(board, moves[0])), moves[0])
     safe_move = 0
     worst_move = 0
     for move in moves:
-        score, _ = maximize(result(board, move))
+        score, _ = maximize(result(board, move))  # Doing Cross Recursion kinda thing
         if score < 0:
-            return score, move
+            return score, move  # Alpha beta prunning here, skipping the calls ahead
         elif score == 0:
             safe_move = move
         else:
             worst_move = move
+    # After All moves select the best move available
     if safe_move != 0:
         return 0, safe_move
     else:
@@ -176,6 +186,7 @@ def minimax(board):
     """
     Returns the optimal action for the current player on the board.
     """
+    # Simple Minimax Call
     curr_player = player(board)
     if curr_player == X:
         return maximize(board)[1]
