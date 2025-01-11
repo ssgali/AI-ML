@@ -128,6 +128,8 @@ def construct_path(source,target,visited : list):
                 x = visited.pop(index)
                 parent = x.parent[1]
                 break
+    if(parent == source):
+        return path[::-1]
     return None
 
 def person_id_for_name(name):
