@@ -105,10 +105,10 @@ class Sentence():
         """
         Returns the set of all cells in self.cells known to be mines.
         """
-        if self.count == 0:
-            return set()
-        else:
+        if self.count == len(self.cells):
             return self.cells
+        else:
+            return set()    
 
     def known_safes(self):
         """
@@ -191,41 +191,32 @@ class MinesweeperAI():
             5) add any new sentences to the AI's knowledge base
                if they can be inferred from existing knowledge
         """
-        self.safes.add(cell)
         self.moves_made.add(cell)
+        self.mark_safe(cell)
         neighbours = self.get_neighbours(cell)
         sentence = Sentence(neighbours,count)
-        if sentence not in self.knowledge:
-            print(sentence)
-            self.knowledge.append(sentence)
-        while(True):
-            flag = self.infer_knowledge()
-            if flag == False:
-                break
-
-    def infer_knowledge(self):
-        flag = False
         additional_knowledge = []
         for sent_1 in self.knowledge:
-            for sent_2 in self.knowledge:
-                if sent_1 == sent_2:
-                    continue
-                if sent_1.known_safes() != set():
-                    self.update_safe(sent_1.cells)
-                    flag = True
-                elif sent_1.known_mines() != set():
-                    self.update_mines(sent_1.cells)
-                    flag = True
-                else:
-                    if sent_2.issubset(sent_1):
-                        additional_knowledge.append(Sentence(sent_1.cells-sent_2.cells,sent_1.count-sent_2.count))
-                        flag = True
-                    elif sent_1.issubset(sent_2):
-                        flag = True
-                        additional_knowledge.append(Sentence(sent_2.cells-sent_1.cells,sent_2.count-sent_1.count))
-        for i in additional_knowledge:
-            self.knowledge.append(i)
-        return flag
+            if sentence.cells.issubset(sent_1.cells):
+                additional_knowledge.append(Sentence(sent_1.cells-sentence.cells,sent_1.count-sentence.count))
+            elif sent_1.cells.issubset(sentence.cells):
+                additional_knowledge.append(Sentence(sentence.cells-sent_1.cells,sentence.count-sent_1.count))
+        if sentence not in self.knowledge:
+            self.knowledge.append(sentence)
+        else:
+            return
+        for sent in additional_knowledge:
+            if sent not in self.knowledge:
+                self.knowledge.append(sent)
+        self.infer_knowledge()
+
+    def infer_knowledge(self):
+        for sent in self.knowledge:
+            if sent.count == 0:
+                self.update_safe(sent.cells)
+            elif len(sent.cells) == sent.count:
+                self.update_mines(sent.cells)
+    
     def make_safe_move(self):
         """
         Returns a safe cell to choose on the Minesweeper board.
@@ -235,11 +226,13 @@ class MinesweeperAI():
         This function may use the knowledge in self.mines, self.safes
         and self.moves_made, but should not modify any of those values.
         """
+        safe_move = None
         if len(self.safes) == 0:
-            return None
-        move = self.safes.pop()
-        self.moves_made.add(move)
-        return move
+            return safe_move
+        for move in self.safes:
+            if move not in self.moves_made and move not in self.mines:
+                return move
+        return safe_move
 
     def make_random_move(self):
         """
@@ -255,10 +248,12 @@ class MinesweeperAI():
                 return (i,j) 
 
     def update_safe(self,cells):
+        cells = list(cells)
         for i in cells:
             self.mark_safe(i)
         
     def update_mines(self,cells):
+        cells = list(cells)
         for i in cells:
             self.mark_mine(i)
 
@@ -271,6 +266,6 @@ class MinesweeperAI():
                 if i < 0 or j < 0 or j >= self.height or i >= self.width:
                     continue
                 else:
-                    if (i,j) not in self.moves_made:
+                    if (i,j) not in self.moves_made and (i,j) not in self.safes:
                         neighbours.append((i,j))
         return neighbours
