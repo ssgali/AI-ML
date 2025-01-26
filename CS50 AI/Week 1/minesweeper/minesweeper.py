@@ -195,28 +195,39 @@ class MinesweeperAI():
         self.mark_safe(cell)
         neighbours = self.get_neighbours(cell)
         sentence = Sentence(neighbours,count)
-        additional_knowledge = []
-        for sent_1 in self.knowledge:
-            if sentence.cells.issubset(sent_1.cells):
-                additional_knowledge.append(Sentence(sent_1.cells-sentence.cells,sent_1.count-sentence.count))
-            elif sent_1.cells.issubset(sentence.cells):
-                additional_knowledge.append(Sentence(sentence.cells-sent_1.cells,sentence.count-sent_1.count))
         if sentence not in self.knowledge:
             self.knowledge.append(sentence)
         else:
             return
+        self.infer_knowledge(True)
+
+    def infer_knowledge(self,flag):
+        if flag == False:
+            return
+        flag = False
+        for i in range(len(self.knowledge) - 1, -1, -1):
+            sent = self.knowledge[i]
+            if sent.count == 0:
+                self.update_safe(sent.cells)
+                del self.knowledge[i]
+            elif len(sent.cells) == sent.count:
+                self.update_mines(sent.cells)
+                del self.knowledge[i]
+        additional_knowledge = []
+        for sent_1 in self.knowledge:
+            for sentence in self.knowledge:
+                if sent_1 == sentence:
+                    continue
+                elif sentence.cells.issubset(sent_1.cells):
+                    additional_knowledge.append(Sentence(sent_1.cells-sentence.cells,sent_1.count-sentence.count))
+                elif sent_1.cells.issubset(sentence.cells):
+                    additional_knowledge.append(Sentence(sentence.cells-sent_1.cells,sentence.count-sent_1.count))
         for sent in additional_knowledge:
             if sent not in self.knowledge:
                 self.knowledge.append(sent)
-        self.infer_knowledge()
+                flag = True
+        self.infer_knowledge(flag=flag)
 
-    def infer_knowledge(self):
-        for sent in self.knowledge:
-            if sent.count == 0:
-                self.update_safe(sent.cells)
-            elif len(sent.cells) == sent.count:
-                self.update_mines(sent.cells)
-    
     def make_safe_move(self):
         """
         Returns a safe cell to choose on the Minesweeper board.
@@ -241,6 +252,8 @@ class MinesweeperAI():
             1) have not already been chosen, and
             2) are not known to be mines
         """
+        if self.height * self.width - len(self.moves_made) == len(self.mines):
+            return None
         while(True):
             i = random.randint(0,self.height-1)
             j = random.randint(0,self.width-1)
