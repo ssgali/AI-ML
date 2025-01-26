@@ -2,7 +2,7 @@ import itertools
 import random
 
 
-class Minesweeper():
+class Minesweeper:
     """
     Minesweeper game representation
     """
@@ -84,7 +84,7 @@ class Minesweeper():
         return self.mines_found == self.mines
 
 
-class Sentence():
+class Sentence:
     """
     Logical statement about a Minesweeper game
     A sentence consists of a set of board cells,
@@ -108,7 +108,7 @@ class Sentence():
         if self.count == len(self.cells):
             return self.cells
         else:
-            return set()    
+            return set()
 
     def known_safes(self):
         """
@@ -137,7 +137,7 @@ class Sentence():
             self.cells.remove(cell)
 
 
-class MinesweeperAI():
+class MinesweeperAI:
     """
     Minesweeper game player
     """
@@ -193,18 +193,18 @@ class MinesweeperAI():
         """
         self.moves_made.add(cell)
         self.mark_safe(cell)
-        neighbours = self.get_neighbours(cell)
-        sentence = Sentence(neighbours,count)
+        neighbours, count = self.get_neighbours(cell, count)
+        sentence = Sentence(neighbours, count)
         if sentence not in self.knowledge:
             self.knowledge.append(sentence)
-        else:
-            return
         self.infer_knowledge(True)
 
-    def infer_knowledge(self,flag):
+    def infer_knowledge(self, flag):
         if flag == False:
             return
         flag = False
+
+        # Iterating in reverse and deleting the sentences which are full mines or safes
         for i in range(len(self.knowledge) - 1, -1, -1):
             sent = self.knowledge[i]
             if sent.count == 0:
@@ -213,20 +213,29 @@ class MinesweeperAI():
             elif len(sent.cells) == sent.count:
                 self.update_mines(sent.cells)
                 del self.knowledge[i]
+
         additional_knowledge = []
         for sent_1 in self.knowledge:
             for sentence in self.knowledge:
                 if sent_1 == sentence:
                     continue
                 elif sentence.cells.issubset(sent_1.cells):
-                    additional_knowledge.append(Sentence(sent_1.cells-sentence.cells,sent_1.count-sentence.count))
+                    additional_knowledge.append(
+                        Sentence(
+                            sent_1.cells - sentence.cells, sent_1.count - sentence.count
+                        )
+                    )
                 elif sent_1.cells.issubset(sentence.cells):
-                    additional_knowledge.append(Sentence(sentence.cells-sent_1.cells,sentence.count-sent_1.count))
+                    additional_knowledge.append(
+                        Sentence(
+                            sentence.cells - sent_1.cells, sentence.count - sent_1.count
+                        )
+                    )
         for sent in additional_knowledge:
             if sent not in self.knowledge:
                 self.knowledge.append(sent)
                 flag = True
-        self.infer_knowledge(flag=flag)
+        self.infer_knowledge(flag=flag)  # Recursively adding additional knowledge
 
     def make_safe_move(self):
         """
@@ -254,29 +263,32 @@ class MinesweeperAI():
         """
         for i in range(self.width):
             for j in range(self.height):
-                if ((i, j) not in self.mines and (i, j) not in self.moves_made):
+                if (i, j) not in self.mines and (i, j) not in self.moves_made:
                     return (i, j)
-        return None 
+        return None
 
-    def update_safe(self,cells):
+    def update_safe(self, cells):
         cells = list(cells)
         for i in cells:
             self.mark_safe(i)
-        
-    def update_mines(self,cells):
+
+    def update_mines(self, cells):
         cells = list(cells)
         for i in cells:
             self.mark_mine(i)
 
-    def get_neighbours(self,cell):
+    def get_neighbours(self, cell, count):
+        # Getting Nearby cells and checking all other conditions and edge cases as well
         neighbours = []
         x = cell[0]
         y = cell[1]
-        for i in range(x-1,x+2):
-            for j in range(y-1,y+2):
-                if i < 0 or j < 0 or j >= self.height or i >= self.width:
+        for i in range(x - 1, x + 2):
+            for j in range(y - 1, y + 2):
+                if i < 0 or j < 0 or i >= self.height or j >= self.width:
                     continue
                 else:
-                    if (i,j) not in self.moves_made and (i,j) not in self.safes:
-                        neighbours.append((i,j))
-        return neighbours
+                    if (i, j) in self.mines:
+                        count -= 1
+                    elif (i, j) not in self.moves_made and (i, j) not in self.safes:
+                        neighbours.append((i, j))
+        return neighbours, count
