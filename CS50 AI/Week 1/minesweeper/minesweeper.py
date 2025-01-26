@@ -252,13 +252,11 @@ class MinesweeperAI():
             1) have not already been chosen, and
             2) are not known to be mines
         """
-        if self.height * self.width - len(self.moves_made) == len(self.mines):
-            return None
-        while(True):
-            i = random.randint(0,self.height-1)
-            j = random.randint(0,self.width-1)
-            if (i,j) not in self.mines and (i,j) not in self.moves_made:
-                return (i,j) 
+        for i in range(self.width):
+            for j in range(self.height):
+                if ((i, j) not in self.mines and (i, j) not in self.moves_made):
+                    return (i, j)
+        return None 
 
     def update_safe(self,cells):
         cells = list(cells)
