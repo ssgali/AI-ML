@@ -11,14 +11,15 @@ def main():
     if len(sys.argv) != 2:
         sys.exit("Usage: python pagerank.py corpus")
     corpus = crawl(sys.argv[1])
-    ranks = sample_pagerank(corpus, DAMPING, SAMPLES)
+    # ranks = sample_pagerank(corpus, DAMPING, SAMPLES)
+    print(transition_model(corpus,"bfs.html",DAMPING))
     print(f"PageRank Results from Sampling (n = {SAMPLES})")
-    for page in sorted(ranks):
-        print(f"  {page}: {ranks[page]:.4f}")
-    ranks = iterate_pagerank(corpus, DAMPING)
-    print(f"PageRank Results from Iteration")
-    for page in sorted(ranks):
-        print(f"  {page}: {ranks[page]:.4f}")
+    # for page in sorted(ranks):
+    #     print(f"  {page}: {ranks[page]:.4f}")
+    # ranks = iterate_pagerank(corpus, DAMPING)
+    # print(f"PageRank Results from Iteration")
+    # for page in sorted(ranks):
+    #     print(f"  {page}: {ranks[page]:.4f}")
 
 
 def crawl(directory):
@@ -57,7 +58,18 @@ def transition_model(corpus, page, damping_factor):
     linked to by `page`. With probability `1 - damping_factor`, choose
     a link at random chosen from all pages in the corpus.
     """
-    raise NotImplementedError
+    prob_dist = {}
+    if corpus[page] == None:
+        prob_dist = {key: round(1/len(corpus),2) for key in corpus}
+        return prob_dist
+    else:
+        overall_prob = round((1-damping_factor) / len(corpus),2)         # The probability to be included in each page rank, (Point number 2)
+        for key,value in corpus.items():
+            prob_dist[key] = prob_dist.get(key, 0) + overall_prob
+            if key == page:
+                for linked_page in value:
+                    prob_dist[linked_page] = prob_dist.get(linked_page, 0) + (damping_factor / len(value))
+    return prob_dist
 
 
 def sample_pagerank(corpus, damping_factor, n):
