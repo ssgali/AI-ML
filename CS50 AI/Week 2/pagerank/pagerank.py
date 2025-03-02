@@ -2,6 +2,7 @@ import os
 import random
 import re
 import sys
+import copy
 
 DAMPING = 0.85
 SAMPLES = 10000
@@ -11,15 +12,14 @@ def main():
     if len(sys.argv) != 2:
         sys.exit("Usage: python pagerank.py corpus")
     corpus = crawl(sys.argv[1])
-    # ranks = sample_pagerank(corpus, DAMPING, SAMPLES)
-    print(transition_model(corpus,"bfs.html",DAMPING))
+    ranks = sample_pagerank(corpus, DAMPING, SAMPLES)
     print(f"PageRank Results from Sampling (n = {SAMPLES})")
-    # for page in sorted(ranks):
-    #     print(f"  {page}: {ranks[page]:.4f}")
-    # ranks = iterate_pagerank(corpus, DAMPING)
-    # print(f"PageRank Results from Iteration")
-    # for page in sorted(ranks):
-    #     print(f"  {page}: {ranks[page]:.4f}")
+    for page in sorted(ranks):
+        print(f"  {page}: {ranks[page]:.4f}")
+    ranks = iterate_pagerank(corpus, DAMPING)
+    print(f"PageRank Results from Iteration")
+    for page in sorted(ranks):
+        print(f"  {page}: {ranks[page]:.4f}")
 
 
 def crawl(directory):
@@ -81,7 +81,60 @@ def sample_pagerank(corpus, damping_factor, n):
     their estimated PageRank value (a value between 0 and 1). All
     PageRank values should sum to 1.
     """
-    raise NotImplementedError
+    page_rank = dict.fromkeys(corpus,0)
+    last_generated_sample = random.choice(list(corpus.keys()))       # Starting Random Page
+    page_rank[last_generated_sample] += 1               # Adding the sample
+    for _ in range(n-1):
+        # Getting Prob Distribution via transition model
+        links_with_pd = transition_model(corpus=corpus,page=last_generated_sample,damping_factor=damping_factor)
+        # Choosing the best prob from Prob Distribution via random.choices
+        last_generated_sample = random.choices(list(links_with_pd.keys()), weights=list(links_with_pd.values()), k=1)[0]
+        page_rank[last_generated_sample] += 1       # Adding the sample
+    # Marginalizing the data from 0 to 1
+    pd_page_rank = {key:value/n for key,value in page_rank.items()}
+    return pd_page_rank
+
+
+def numlinks(corpus, page):
+    """
+    Simple function which return number of links of a certain page
+    """
+    
+    if page in corpus:
+        return len(corpus[page])
+    else:
+        return None
+
+
+def get_page_rank(corpus: dict,page_rank: dict,page,damping_factor):
+    """
+    Returns the pagerank of the given page
+    It will calculate from the already calculated page rank of all the pages
+    """
+    
+    # First Part of the Formula
+    page_rank[page] = (1 - damping_factor)/len(corpus)
+
+    # Traversing through each page in corpus
+    for curr_page,linked_pages in corpus.items():
+        
+        # If a page has no links then its going to add the probabily according to the following rule
+        if len(linked_pages) == 0:
+            page_rank[page] += page_rank[curr_page]/len(corpus)
+        # If a certain page has link to Given page, then following rule is going to be followed
+        elif page in linked_pages:
+            page_rank[page] += damping_factor*(page_rank[curr_page]/numlinks(corpus,curr_page))
+    return page_rank[page]
+
+
+def check_values(pr_1,pr_2):
+    """
+    Return True if the difference between values is less than 0.001
+    """
+    for page in pr_1.keys():
+        if pr_1[page] - pr_2[page] > 0.001:
+            return False
+    return True  
 
 
 def iterate_pagerank(corpus, damping_factor):
@@ -93,8 +146,14 @@ def iterate_pagerank(corpus, damping_factor):
     their estimated PageRank value (a value between 0 and 1). All
     PageRank values should sum to 1.
     """
-    raise NotImplementedError
-
+    page_rank = dict.fromkeys(corpus,1/len(corpus))
+    new_page_rank = copy.deepcopy(page_rank)
+    while(True):
+        copied_pr = copy.deepcopy(new_page_rank)
+        for page in page_rank.keys():
+            new_page_rank[page] = get_page_rank(corpus,page_rank,page,damping_factor)
+        if check_values(new_page_rank,copied_pr):
+            return new_page_rank
 
 if __name__ == "__main__":
     main()
