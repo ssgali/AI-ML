@@ -115,59 +115,41 @@ def terminal(board):
         return True
 
 
-def maximize(board):
-    """
-    Returns a tuple with most possible score at its first index and move at its second index
-    """
+def maximize(board,alpha = float('-inf'),beta = float('inf')):
     if terminal(board):
         return (utility(board), None)
-    moves = actions(board)
-    safe_move = 0  # Safest Move
-    worst_move = 0  # Worst Move
-    if len(moves) == 1:
-        moves = list(moves)
-        return (utility(result(board, moves[0])), moves[0])
-    for move in moves:
-        score, _ = minimize(result(board, move))  # Doing Cross Recursion kinda thing
-        if score > 0:
-            return score, move  # Alpha beta prunning here, skipping the calls ahead
-        elif score == 0:
-            safe_move = move
-        else:
-            worst_move = move
-    # After All moves select the best move available
-    if safe_move != 0:
-        return 0, safe_move
-    else:
-        return -1, worst_move
+    
+    max_eval = float('-inf')
+    best_move = None
 
+    for move in actions(board):
+        score = minimize(result(board, move),alpha,beta)[0]
+        if score > max_eval:
+            max_eval = score
+            alpha = max_eval
+            best_move = move
+        if alpha >= beta:
+            break
+            
+    return max_eval, best_move
 
-def minimize(board):
-    """
-    Returns a tuple with the least possible score at its first index and move at its second index
-    """
+def minimize(board, alpha = float('-inf'),beta = float('inf')):
     if terminal(board):
         return (utility(board), None)
-    moves = actions(board)
-    if len(moves) == 1:
-        moves = list(moves)
-        return (utility(result(board, moves[0])), moves[0])
-    safe_move = 0
-    worst_move = 0
-    for move in moves:
-        score, _ = maximize(result(board, move))  # Doing Cross Recursion kinda thing
-        if score < 0:
-            return score, move  # Alpha beta prunning here, skipping the calls ahead
-        elif score == 0:
-            safe_move = move
-        else:
-            worst_move = move
-    # After All moves select the best move available
-    if safe_move != 0:
-        return 0, safe_move
-    else:
-        return 1, worst_move
 
+    min_eval = float('inf')
+    best_move = None
+
+    for move in actions(board):
+        score = maximize(result(board, move),alpha,beta)[0]
+        if score < min_eval:
+            min_eval = score
+            beta = min_eval
+            best_move = move
+        if alpha >= beta:
+            break
+            
+    return min_eval, best_move
 
 def utility(board):
     """
