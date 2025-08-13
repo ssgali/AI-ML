@@ -3,7 +3,7 @@ import random
 import time
 
 
-class Nim():
+class Nim:
 
     def __init__(self, initial=[1, 3, 5, 7]):
         """
@@ -70,7 +70,7 @@ class Nim():
             self.winner = self.player
 
 
-class NimAI():
+class NimAI:
 
     def __init__(self, alpha=0.5, epsilon=0.1):
         """
@@ -101,7 +101,10 @@ class NimAI():
         Return the Q-value for the state `state` and the action `action`.
         If no Q-value exists yet in `self.q`, return 0.
         """
-        raise NotImplementedError
+        try:
+            return self.q[(tuple(state), action)]
+        except KeyError:
+            return 0
 
     def update_q_value(self, state, action, old_q, reward, future_rewards):
         """
@@ -118,7 +121,11 @@ class NimAI():
         `alpha` is the learning rate, and `new value estimate`
         is the sum of the current reward and estimated future rewards.
         """
-        raise NotImplementedError
+
+        # New Value Estimate = Current reward + future rewards
+        new_estimate = reward + future_rewards
+
+        self.q[(tuple(state), action)] = old_q + self.alpha * (new_estimate - old_q)
 
     def best_future_reward(self, state):
         """
@@ -130,7 +137,30 @@ class NimAI():
         Q-value in `self.q`. If there are no available actions in
         `state`, return 0.
         """
-        raise NotImplementedError
+        available_actions = list(Nim.available_actions(state))
+        if len(available_actions) == 0:
+            return 0
+
+        best_reward = self.get_q_value(state, available_actions[0])
+        for action in available_actions:
+            if self.get_q_value(state, action) > best_reward:
+                best_reward = self.get_q_value(state, action)
+        return best_reward
+
+    def greedy_approach(self, state, available_moves):
+        """
+        Given a state `state`, available_moves to take.
+
+        Returns the best move in the available_moves of the state
+        """
+        best_reward = self.get_q_value(state, available_moves[0])
+        # Storing the best Move
+        best_move = available_moves[0]
+        for action in available_moves:
+            if self.get_q_value(state, action) > best_reward:
+                best_reward = self.get_q_value(state, action)
+                best_move = action
+        return best_move
 
     def choose_action(self, state, epsilon=True):
         """
@@ -147,7 +177,19 @@ class NimAI():
         If multiple actions have the same Q-value, any of those
         options is an acceptable return value.
         """
-        raise NotImplementedError
+        # We have to get all the possible moves for the Current State
+        # Assuming that state is not a terminal state as well, i.e. it will have some moves which can be played
+
+        available_moves = list(Nim.available_actions(state))
+
+        if epsilon:
+            if random.random() < self.epsilon:
+                # If the number is in the range of 0-self.epsilon go ahead do the E-Greedy Approach
+                return random.choice(available_moves)
+
+        # If epsilon-greedy exploration is disabled
+        # OR the random probability check fails (i.e., probability < epsilon)
+        return self.greedy_approach(state, available_moves)
 
 
 def train(n):
@@ -163,10 +205,7 @@ def train(n):
         game = Nim()
 
         # Keep track of last move made by either player
-        last = {
-            0: {"state": None, "action": None},
-            1: {"state": None, "action": None}
-        }
+        last = {0: {"state": None, "action": None}, 1: {"state": None, "action": None}}
 
         # Game loop
         while True:
@@ -190,7 +229,7 @@ def train(n):
                     last[game.player]["state"],
                     last[game.player]["action"],
                     new_state,
-                    1
+                    1,
                 )
                 break
 
@@ -200,7 +239,7 @@ def train(n):
                     last[game.player]["state"],
                     last[game.player]["action"],
                     new_state,
-                    0
+                    0,
                 )
 
     print("Done training")
